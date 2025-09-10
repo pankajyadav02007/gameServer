@@ -4,6 +4,9 @@ import prisma from "../prisma/db.mjs"
 import { errorPritify, UserSignupModel,UserLoginModel } from "./validator.mjs"
 import emailQueue from "../queue/email.queue.mjs"
 import { asyncJwtSign } from "../asyncJwt.mjs"
+import Randomstring from "randomstring"
+import dayjs from "dayjs"
+import sendEmail from "../email.mjs"
 
 const signup = async (req, res, next) => {
   const result = await UserSignupModel.safeParseAsync(req.body)
@@ -83,7 +86,7 @@ await prisma.user.update({
       resetTokenExpiry: new Date(Date.now())
   },
 })
-const msg = `<html><body>Click this link<a href="http://localhost:3000/reset_password/${token}">Click Here</a></body></html>`
+const msg = `<html><body>Click this link<a href="http://localhost:5000/reset_password/${token}">Click Here</a></body></html>`
 
 await sendEmail(req.body.email,"Forgot Password", msg)
 
@@ -91,8 +94,10 @@ await sendEmail(req.body.email,"Forgot Password", msg)
 }
 
 // resetPassword
-const resetPassword = (req, res, next) => {
+const resetPassword = async(req, res, next) => {
   res.json({ msg: "reset password" })
 }
+
+
 
 export { signup, login, forgotPassword, resetPassword }

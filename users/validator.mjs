@@ -42,9 +42,17 @@ const UserLoginModel = z.object({
     .regex(/[^a-zA-Z0-9]/, { message: "Password must contain at least one special character." }),
 });
 
+const UserForgotPassword = z.object({
+    email: z
+    .string()
+    .email({ message: "Please provide a valid email address." })
+    .min(6, { message: "Email must be at least 6 characters long." })
+    .max(50, { message: "Email must not exceed 50 characters." }),
+
+});
 
 const errorPritify = (result) => {
   return z.prettifyError(result.error)
 }
 
-export { UserSignupModel,UserLoginModel, errorPritify }
+export { UserSignupModel,UserLoginModel,UserForgotPassword, errorPritify }
