@@ -9,11 +9,61 @@ datasource db {
 }
 
 model User {
-  id               Int      @id @default(autoincrement())
-  name             String
-  email            String   @unique
-  password         String
-  accountVerified  Boolean  @default(false)
-  resetToken       String?
-  resetTokenExpiry DateTime @default(now())
+  id                Int                 @id @default(autoincrement())
+  name              String?
+  email             String              @unique
+  password          String
+  accountVerified   Boolean             @default(false)
+  resetToken        String?
+  resetTokenExpiry  DateTime            @default(now())
+  profilePhoto      String?
+  createdAt         DateTime            @default(now())
+  playerGameProfile playerGameProfile[]
+  gameSessionPlayer gameSessionPlayer[]
+}
+
+model Game {
+  id                Int                 @id @default(autoincrement())
+  name              String
+  maxPlayer         Int
+  minPlayer         Int
+  thumbnail         String?
+  playerGameProfile playerGameProfile[]
+  GameSession       GameSession[]
+}
+
+model playerGameProfile {
+  id              Int  @id @default(autoincrement())
+  gameId          Int
+  game            Game @relation(fields: [gameId], references: [id])
+  playerId        Int
+  player          User @relation(fields: [playerId], references: [id])
+  Highscore       Int  @default(0)
+  totalPlayedTime Int  @default(0)
+  gameCount       Int  @default(0)
+
+  @@unique([gameId, playerId])
+}
+
+enum Status {
+  WAITING
+  PLAYING
+  LEFT
+  FINISHED
+}
+
+model GameSession {
+  id                Int                 @id @default(autoincrement())
+  gameId            Int
+  game              Game                @relation(fields: [gameId], references: [id])
+  Status            Status              @default(WAITING)
+  gameSessionPlayer gameSessionPlayer[]
+}
+
+model gameSessionPlayer {
+  id          Int         @id @default(autoincrement())
+  sessionId   Int
+  gameSession GameSession @relation(fields: [sessionId], references: [id])
+  playerId    Int         @default(0)
+  player      User        @relation(fields: [playerId], references: [id])
 }

@@ -95,9 +95,19 @@ await sendEmail(req.body.email,"Forgot Password", msg)
 
 // resetPassword
 const resetPassword = async(req, res, next) => {
+  // 1. find User via email from req.body
+  // 1. generate a 32 keyword random string
+  // 3. update this string in DB with future 15min expiry time
+  // 4. make link example https://localhost:5000/resetPassword/fgvjkdsuhvgyahfvajdsfahvdsjvbd
+  // 5. send this link via email
   res.json({ msg: "reset password" })
 }
 
+const getMe = async(req,res,next) =>{
+  // 1. Extract user from request
+  // 2. find user in DB by ID or Email
+  // 3. Send user details without password
+res.json({msg:"This is me"})
+}
 
-
-export { signup, login, forgotPassword, resetPassword }
+export { signup, login, forgotPassword, resetPassword, getMe}
