@@ -51,8 +51,20 @@ const UserForgotPassword = z.object({
 
 });
 
+
+const UserResetPassword = z.object({
+   password: z
+    .string()
+    .min(4, { message: "Password must be at least 4 characters long." })
+    .max(16, { message: "Password must not exceed 16 characters." })
+    .regex(/[a-z]/, { message: "Password must contain at least one lowercase letter." })
+    .regex(/[A-Z]/, { message: "Password must contain at least one uppercase letter." })
+    .regex(/[0-9]/, { message: "Password must contain at least one digit." })
+   
+});
+
 const errorPritify = (result) => {
   return z.prettifyError(result.error)
 }
 
-export { UserSignupModel,UserLoginModel,UserForgotPassword, errorPritify }
+export { UserSignupModel,UserLoginModel,UserForgotPassword,UserResetPassword, errorPritify }

@@ -8,6 +8,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  ADMIN
+  USER
+}
+
 model User {
   id                Int                 @id @default(autoincrement())
   name              String?
@@ -17,6 +22,7 @@ model User {
   resetToken        String?
   resetTokenExpiry  DateTime            @default(now())
   profilePhoto      String?
+  role              Role                @default(USER)
   createdAt         DateTime            @default(now())
   playerGameProfile playerGameProfile[]
   gameSessionPlayer gameSessionPlayer[]
@@ -67,3 +73,5 @@ model gameSessionPlayer {
   playerId    Int         @default(0)
   player      User        @relation(fields: [playerId], references: [id])
 }
+
+// init prisma model ----user me roles naam ka table add karna hai  aur data type enum ka naam role and  user/admin

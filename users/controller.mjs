@@ -24,7 +24,13 @@ const signup = async (req, res, next) => {
     },
   });
   console.log(newUser)
-
+ // 1. Add 2 columns in User table in DB. 
+  // 1.1 Add resetToken(string), resetTokenExpiry(timestampz) in User prisma model
+  // 1.2 Run migration to acctually add column
+  // 2. generate a 32 keyword random string
+  // 3. update this string in DB with future 15min expiry time
+  // 4. make link example https://localhost:5000/resetPassword/fgvjkdsuhvgyahfvajdsfahvdsjvbd
+  // 5. add this above link email replacing http://google.com
   await emailQueue.add("Welcome Email",{
     to: newUser.email,
     subject: "Verfication Email",
@@ -70,6 +76,11 @@ const login = async(req, res, next) => {
 
 // forgotPassword
 const forgotPassword = async(req, res, next) => {
+  // 1. find User via email from req.body
+  // 1. generate a 32 keyword random string
+  // 3. update this string in DB with future 15min expiry time
+  // 4. make link example https://localhost:5000/resetPassword/fgvjkdsuhvgyahfvajdsfahvdsjvbd
+  // 5. send this link via email
   const user = await prisma.user.findUnique({
     where: {
       email: req.body.email,
@@ -100,6 +111,34 @@ const resetPassword = async(req, res, next) => {
   // 3. update this string in DB with future 15min expiry time
   // 4. make link example https://localhost:5000/resetPassword/fgvjkdsuhvgyahfvajdsfahvdsjvbd
   // 5. send this link via email
+
+const users = await prisma.user.findUnique({
+  where: {
+    resetToken: req.params.token
+  }
+})
+
+if(!users.length){
+  throw new ServerError (400,"Invalid Reset Token")
+}
+
+const user = users[0]
+
+const subTime = dayjs().subtract(process.env.RESET_LINK_EXPIRY_TIME_IN_MINUTES,'minute')
+if(dayjs(subTime).isAfter(dayjs(user.resetTokenExpiry))){
+  throw new ServerError (400, "link is expired!!! try forgot password again")
+}
+
+const hasedPassword = await bcrypt.hash(req.body.password, 10)
+await prisma.user.update({
+  where: {
+    id: user.id
+  },
+  date: {
+    resetToken: null,
+    password: hasedPassword
+  }
+})
   res.json({ msg: "reset password" })
 }
 
