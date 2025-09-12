@@ -23,7 +23,7 @@ const signup = async (req, res, next) => {
       password: hasedPassword
     },
   });
-  console.log(newUser)
+  // console.log(newUser)
  // 1. Add 2 columns in User table in DB. 
   // 1.1 Add resetToken(string), resetTokenExpiry(timestampz) in User prisma model
   // 1.2 Run migration to acctually add column
@@ -43,6 +43,8 @@ const signup = async (req, res, next) => {
   res.json({ msg: "signup is successful" })
 }
 
+
+
 // find user login by email from DB
 const login = async(req, res, next) => {
  const result = await UserLoginModel.safeParseAsync(req.body)
@@ -55,12 +57,16 @@ const login = async(req, res, next) => {
       email: req.body.email,
     },
   })
-  console.log(user)
+  // console.log(user)
   if (!user) {
     throw new ServerError(404, "user do not exist")
   }
 
-  // TODO: check is account verified
+  // check is account verified
+if(!user.accountVerified){
+  throw new ServerError(404, "verify your account first")
+}
+
   // TODO: match hased password
   const isOk = await bcrypt.compare(req.body.password, user.password)
   if(!isOk){
