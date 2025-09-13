@@ -63,9 +63,9 @@ const login = async(req, res, next) => {
   }
 
   // check is account verified
-if(!user.accountVerified){
-  throw new ServerError(404, "verify your account first")
-}
+// if(!user.accountVerified){
+//   throw new ServerError(404, "verify your account first")
+// }
 
   // TODO: match hased password
   const isOk = await bcrypt.compare(req.body.password, user.password)
@@ -118,17 +118,17 @@ const resetPassword = async(req, res, next) => {
   // 4. make link example https://localhost:5000/resetPassword/fgvjkdsuhvgyahfvajdsfahvdsjvbd
   // 5. send this link via email
 
-const users = await prisma.user.findUnique({
+const user = await prisma.user.findUnique({
   where: {
-    resetToken: req.params.token
+    resetToken: req.body.token
   }
 })
 
-if(!users.length){
+if(!user){
   throw new ServerError (400,"Invalid Reset Token")
 }
 
-const user = users[0]
+// const user = users[0];
 
 const subTime = dayjs().subtract(process.env.RESET_LINK_EXPIRY_TIME_IN_MINUTES,'minute')
 if(dayjs(subTime).isAfter(dayjs(user.resetTokenExpiry))){
@@ -140,10 +140,10 @@ await prisma.user.update({
   where: {
     id: user.id
   },
-  date: {
+  data: {
     resetToken: null,
-    password: hasedPassword
-  }
+    password: hasedPassword,
+  },
 })
   res.json({ msg: "reset password" })
 }
