@@ -1,6 +1,6 @@
 import express from 'express';
 const userRouter = express.Router();
-import { forgotPassword, getMe, login, resetPassword, signup } from './controller.mjs';
+import { forgotPassword, getMe, login, resetPassword, signup, updateProfileImage } from './controller.mjs';
 import {authentication} from '../auth.mjs'
 
 userRouter
@@ -9,5 +9,6 @@ userRouter
   .patch('/forgotPassword', forgotPassword)
   .patch('/resetPassword', resetPassword)
   .get('/profile', authentication, getMe)
+  .patch('/profile/image',authentication,updateProfileImage)
 
 export default userRouter
