@@ -67,4 +67,4 @@ const errorPritify = (result) => {
   return z.prettifyError(result.error)
 }
 
-export { UserSignupModel,UserLoginModel,UserForgotPassword,UserResetPassword, errorPritify }
+export { UserSignupModel, UserLoginModel, UserForgotPassword, UserResetPassword, errorPritify }

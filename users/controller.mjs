@@ -1,182 +1,190 @@
-import { ServerError } from "../error.mjs"
-import bcrypt from "bcrypt"
-import prisma from "../prisma/db.mjs"
-import { errorPritify, UserSignupModel,UserLoginModel } from "./validator.mjs"
-import emailQueue from "../queue/email.queue.mjs"
-import { asyncJwtSign } from "../asyncJwt.mjs"
-import Randomstring from "randomstring"
-import dayjs from "dayjs"
-import sendEmail from "../email.mjs"
+import { ServerError } from "../error.mjs";
+import bcrypt from "bcrypt";
+import prisma from "../prisma/db.mjs";
+import { errorPritify, UserSignupModel, UserLoginModel } from "./validator.mjs";
+import emailQueue from "../queue/email.queue.mjs";
+import { asyncJwtSign } from "../asyncJwt.mjs";
+import Randomstring from "randomstring";
+import dayjs from "dayjs";
+import sendEmail from "../email.mjs";
 
 const signup = async (req, res, next) => {
   // validate input data
-  const result = await UserSignupModel.safeParseAsync(req.body)
+  const result = await UserSignupModel.safeParseAsync(req.body);
   if (!result.success) {
-    throw new ServerError(400, errorPritify(result))
+    throw new ServerError(400, errorPritify(result));
   }
 
   // hash password
-  const hasedPassword = await bcrypt.hash(req.body.password, 10)
+  const hasedPassword = await bcrypt.hash(req.body.password, 10);
 
   // add user to DB
   const newUser = await prisma.user.create({
     data: {
       email: req.body.email,
       name: req.body.name,
-      password: hasedPassword
+      password: hasedPassword,
     },
   });
   // console.log(newUser)
- // 1. Add 2 columns in User table in DB. 
+  // 1. Add 2 columns in User table in DB.
   // 1.1 Add resetToken(string), resetTokenExpiry(timestampz) in User prisma model
   // 1.2 Run migration to acctually add column
   // 2. generate a 32 keyword random string
 
-  
   // 3. update this string in DB with future 15min expiry time
   // 4. make link example https://localhost:5000/resetPassword/fgvjkdsuhvgyahfvajdsfahvdsjvbd
   // 5. add this above link email replacing http://google.com
-  await emailQueue.add("Welcome Email",{
+  await emailQueue.add("Welcome Email", {
     to: newUser.email,
     subject: "Verfication Email",
-    body:`<html>
+    body: `<html>
   <h1>Welcome ${newUser.name}</h1>
   <a href="http://google.com">Click Here to Verify Account</a>
-  </html>`
-  })
+  </html>`,
+  });
   // send account verification email -> nodemailer
-  res.json({ msg: "signup is successful" })
-}
-
-
+  res.json({ msg: "signup is successful" });
+};
 
 // find user login by email from DB
-const login = async(req, res, next) => {
- const result = await UserLoginModel.safeParseAsync(req.body)
+const login = async (req, res, next) => {
+  const result = await UserLoginModel.safeParseAsync(req.body);
   if (!result.success) {
-    throw new ServerError(401, errorPritify(result))
+    throw new ServerError(401, errorPritify(result));
   }
-    // find user in DB
+  // find user in DB
   const user = await prisma.user.findUnique({
     where: {
       email: req.body.email,
     },
-  })
+  });
   // console.log(user)
   if (!user) {
-    throw new ServerError(404, "user do not exist")
+    throw new ServerError(404, "user do not exist");
   }
 
   // check is account verified
-// if(!user.accountVerified){
-//   throw new ServerError(404, "verify your account first")
-// }
+  // if (!user.accountVerified) {
+  //   throw new ServerError(404, "verify your account first");
+  // }
 
   // TODO: match hased password
-  const isOk = await bcrypt.compare(req.body.password, user.password)
-  if(!isOk){
-    throw new ServerError(401,"password is wrong")
-  
+  const isOk = await bcrypt.compare(req.body.password, user.password);
+  if (!isOk) {
+    throw new ServerError(401, "password is wrong");
   }
   // Generate JWT Token -> json web token
-    const token = await asyncJwtSign({ id: user.id, name: user.name, email: user.email}, process.env.TOKEN_SECRET)
-      res.json({ token, id: user.id, email: user.email})
-  console.log(token)
+  const token = await asyncJwtSign(
+    { id: user.id, name: user.name, email: user.email },
+    process.env.TOKEN_SECRET
+  );
+  res.json({ token, id: user.id, email: user.email });
+  console.log(token);
   // res.json({ msg: "login done successfull"})
-}  
+};
 
 // forgotPassword
-const forgotPassword = async(req, res, next) => {
-
+const forgotPassword = async (req, res, next) => {
   // 1. find User via email from req.body
   const user = await prisma.user.findUnique({
     where: {
       email: req.body.email,
     },
-  })
-  if(!user){
-    throw new ServerError (404,"user do not exist")
+  });
+  if (!user) {
+    throw new ServerError(404, "user do not exist");
   }
 
   // 2. generate a 32 keyword random string
-  const token = Randomstring.generate()
+  const token = Randomstring.generate();
   await prisma.user.update({
-    where: {email: req.body.email},
+    where: { email: req.body.email },
     data: {
       resetToken: token,
-      resetTokenExpiry: new Date(Date.now()) // 3. update this string in DB with future 15min expiry time
+      resetTokenExpiry: new Date(Date.now()), // 3. update this string in DB with future 15min expiry time
     },
-  })
+  });
 
   // 4. make link example https://localhost:5000/resetPassword/fgvjkdsuhvgyahfvajdsfahvdsjvbd
-  const msg = `<html><body>Click this link<a href="http://localhost:5000/reset_password/${token}">Click Here</a></body></html>`
-  
-  // 5. send this link via email
-await sendEmail(req.body.email,"Forgot Password", msg)
+  const msg = `<html><body>Click this link<a href="http://localhost:5000/reset_password/${token}">Click Here</a></body></html>`;
 
-  res.json({ msg: "email send check your email" })
-}
+  // 5. send this link via email
+  await sendEmail(req.body.email, "Forgot Password", msg);
+
+  res.json({ msg: "email send check your email" });
+};
 
 // resetPassword
-const resetPassword = async(req, res, next) => {
+const resetPassword = async (req, res, next) => {
   // 1. find User via email from req.body
   // 1. generate a 32 keyword random string
   // 3. update this string in DB with future 15min expiry time
   // 4. make link example https://localhost:5000/resetPassword/fgvjkdsuhvgyahfvajdsfahvdsjvbd
   // 5. send this link via email
 
-const user = await prisma.user.findUnique({
-  where: {
-    resetToken: req.body.token
+  const user = await prisma.user.findUnique({
+    where: {
+      resetToken: req.body.token,
+    },
+  });
+
+  if (!user) {
+    throw new ServerError(400, "Invalid Reset Token");
   }
-})
 
-if(!user){
-  throw new ServerError (400,"Invalid Reset Token")
-}
+  // const user = users[0];
 
-// const user = users[0];
+  const subTime = dayjs().subtract(
+    process.env.RESET_LINK_EXPIRY_TIME_IN_MINUTES,
+    "minute"
+  );
+  if (dayjs(subTime).isAfter(dayjs(user.resetTokenExpiry))) {
+    throw new ServerError(400, "link is expired!!! try forgot password again");
+  }
 
-const subTime = dayjs().subtract(process.env.RESET_LINK_EXPIRY_TIME_IN_MINUTES,'minute')
-if(dayjs(subTime).isAfter(dayjs(user.resetTokenExpiry))){
-  throw new ServerError (400, "link is expired!!! try forgot password again")
-}
+  const hasedPassword = await bcrypt.hash(req.body.password, 10);
+  await prisma.user.update({
+    where: {
+      id: user.id,
+    },
+    data: {
+      resetToken: null,
+      password: hasedPassword,
+    },
+  });
+  res.json({ msg: "reset password" });
+};
 
-const hasedPassword = await bcrypt.hash(req.body.password, 10)
-await prisma.user.update({
-  where: {
-    id: user.id
-  },
-  data: {
-    resetToken: null,
-    password: hasedPassword,
-  },
-})
-  res.json({ msg: "reset password" })
-}
-
-
-
-const getMe = async(req,res,next) =>{
+const getMe = async (req, res, next) => {
   // 1. Extract user from request
   // 2. find user in DB by ID or Email
   // 3. Send user details without password
 
-// const user = await prisma.user.findUnique({
-//   where: { id: req.user.id},
-//   select: { id: true, name: true, email: true, accountVerified: true }
-// })
+  // const user = await prisma.user.findUnique({
+  //   where: { id: req.user.id},
+  //   select: { id: true, name: true, email: true, accountVerified: true }
+  // })
 
-// if(!user) {
-//   throw new ServerError (404, "user not found")
-// }
+  // if(!user) {
+  //   throw new ServerError (404, "user not found")
+  // }
 
-// res.json({ user})
-res.json({msg:"This is me"})
-}
+  // res.json({ user})
+  res.json({ msg: "This is me" });
+};
 
-const updateProfileImage = async(req, res, next) =>{
- res.json({msg: "tbgkhtgf"})
-}
+const updateProfileImage = async (req, res, next) => {
+  console.log(req.user);
+  console.log(req.file);
+  res.json({ msg: "tbgkhtgf" });
+};
 
-export { signup, login, forgotPassword, resetPassword, getMe, updateProfileImage}
+export {
+  signup,
+  login,
+  forgotPassword,
+  resetPassword,
+  getMe,
+  updateProfileImage,
+};
