@@ -1,10 +1,11 @@
-import jwt from "jsonwebtoken";
+import { ca } from "zod/locales";
+import { asyncJwtVerify } from "./asyncjwt.mjs";
 import { ServerError } from "./error.mjs";
 
 const authentication = async (req, res, next) => {
   // 1. check for token is available
   if (!req.headers.authorization) {
-    throw new ServerError(400, "token is not send");
+    throw new ServerError(401, "token not supplied");
   }
 
   const [bearer, token] = req.headers.authorization.split(" ");
@@ -14,16 +15,14 @@ const authentication = async (req, res, next) => {
   if (bearer !== "Bearer") {
     throw new ServerError(401, "Bearer token not supplied!");
   }
-  // 2. validate token
+
   try {
-    jwt.verify(token, process.env.TOKEN_SECRET);
-  } catch (e) {
-    throw new ServerError(400, e.message);
+    const user = await asyncJwtVerify(token, process.env.TOKEN_SECRET);
+    req.user = user;
+  } catch (err) {
+    throw new ServerError(401, err.message);
   }
 
-  req.user = jwt.decode(token);
-  // 3. extract playload of token
-  // 4. attach to request for further use
   next();
 };
 
