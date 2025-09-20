@@ -20,7 +20,7 @@ model User {
   password          String
   accountVerified   Boolean             @default(false)
   resetToken        String?             @unique
-  resetTokenExpiry  DateTime            @default(now())
+  tokenExpiry       DateTime?
   profilePhoto      String?
   role              String              @default("user")
   createdAt         DateTime            @default(now())

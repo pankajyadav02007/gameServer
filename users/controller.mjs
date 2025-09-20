@@ -6,6 +6,7 @@ import emailQueue from "../queue/email.queue.mjs";
 import { asyncJwtSign } from "../asyncjwt.mjs";
 import { generateSecureRandomString } from "../utils.mjs";
 import dayjs from "dayjs";
+import { uploadImage } from "../storage/storage.mjs";
 
 const signup = async (req, res, next) => {
   // validate input data
@@ -198,7 +199,16 @@ const getMe = async (req, res, next) => {
 const updateProfileImage = async (req, res, next) => {
   console.log(req.file);
   // upload to cloud storage
-  res.json({ msg: "oiuyjthgr" });
+  const result = await uploadImage(req.file, "profiles", true);
+  console.log(result);
+  await prisma.user.update({
+    where: { id: req.user.id },
+    data: {
+      profilePhoto: result.secure_url,
+    },
+  });
+
+  res.json({ msg: "image uploaded successfully" });
 };
 
 export {
