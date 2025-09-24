@@ -1,4 +1,5 @@
-import { prisma, Prisma } from "../prisma/db.mjs";
+import { ServerError } from "../error.mjs";
+import { DB_ERR_CODES, prisma, Prisma } from "../prisma/db.mjs";
 
 const addGame = async (req, res, next) => {
   // Add validation
@@ -18,4 +19,40 @@ const listGame = async (req, res, next) => {
   res.json({ msg: "successfull", games });
 };
 
-export { addGame, listGame };
+const requestGame = async (req, res, next) => {
+  if (!req.body.gameID) {
+    throw new ServerError(404, " game id must be supplied");
+  }
+  let gameSession = await prisma.gameSession.findFirst({
+    where: {
+      gameId: req.body.gameID,
+      Status: "WAITING",
+    },
+  });
+  if (!gameSession) {
+    gameSession = await prisma.gameSession.create({
+      data: {
+        gameId: req.body.gameID,
+      },
+    });
+    try {
+      const gameSessionPlayer = await prisma.gameSessionPlayer.create({
+        data: {
+          sessionId: gameSession.id,
+          playerId: req.user.id,
+        },
+      });
+      res.json({ msg: " njsdjsd successfull", gameID: req.body.gameID });
+    } catch (err) {
+      if (err.code === DB_ERR_CODES.UNIQUE_ERR) {
+        throw new ServerError(
+          400,
+          "player is already added in this game session"
+        );
+      }
+      throw err;
+    }
+  }
+};
+
+export { addGame, listGame, requestGame };

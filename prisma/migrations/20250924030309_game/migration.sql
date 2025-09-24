@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "public"."GameSession" ALTER COLUMN "CreatedAt" SET DEFAULT CURRENT_TIMESTAMP;

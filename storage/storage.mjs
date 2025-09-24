@@ -8,19 +8,20 @@ function bufferToStream(buffer) {
   return readable;
 }
 
-const uploadImage = async (file, folderName, isPublic) => {
+const uploadImage = async (file, fileName, folderName, isPublic) => {
   const result = await new Promise((resolve, reject) => {
     try {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: folderName,
           access_mode: isPublic ? "public" : "authenticated",
+          public_id: fileName,
+          overwrite: true,
+          use_filename: true,
+          unique_filename: false,
         },
         (error, result) => {
           if (error) return reject(error);
-          console.log("------------------------------");
-          console.log(result);
-          console.log("------------------------------");
           resolve(result);
         }
       );

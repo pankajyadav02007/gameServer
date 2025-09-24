@@ -8,6 +8,7 @@ import { generateSecureRandomString } from "../utils.mjs";
 import dayjs from "dayjs";
 import { uploadImage } from "../storage/storage.mjs";
 
+// signUp implementation
 const signup = async (req, res, next) => {
   // validate input data
   const result = await UserSignupModel.safeParseAsync(req.body);
@@ -70,6 +71,7 @@ const signup = async (req, res, next) => {
   res.json({ msg: "signup is successful" });
 };
 
+// Login implementation
 const login = async (req, res, next) => {
   const result = await UserLoginModel.safeParseAsync(req.body);
   if (!result.success) {
@@ -103,6 +105,7 @@ const login = async (req, res, next) => {
   res.json({ msg: "login successful", token });
 };
 
+// ForgotPassword implementation
 const forgotPassword = async (req, res, next) => {
   // 2. generate a 32 keyword random string
   const randomStr = generateSecureRandomString(32);
@@ -140,6 +143,7 @@ const forgotPassword = async (req, res, next) => {
   res.json({ msg: "Email sent" });
 };
 
+// ResetPassword implementation
 const resetPassword = async (req, res, next) => {
   // 1. Extract token from req.body
   if (!req.body || !req.body.token) {
@@ -196,11 +200,27 @@ const getMe = async (req, res, next) => {
   res.json({ msg: "This is me", me: req.user });
 };
 
+// updatePofileImage in cloudinary implementation
 const updateProfileImage = async (req, res, next) => {
   console.log(req.file);
   // upload to cloud storage
   const result = await uploadImage(req.file, "profiles", true);
   console.log(result);
+  await prisma.user.update({
+    where: { id: req.user.id },
+    data: {
+      profilePhoto: result.secure_url,
+    },
+  });
+  if (!user.profilePhoto) {
+    const fileName = `${generateSecureRandomString(32)}`;
+    result = await uploadImage(req.file.buffer, fileName, "profiles", true);
+  } else {
+    const splittedUrl = user.profilePhoto.splite("/");
+    const fileNameWithExt = splittedUrl[splittedUrl.length - 1];
+    const fileName = fileNameWithExt.splite(".")[0];
+    result = await uploadImage(req.file.buffer, fileName, "profiles", true);
+  }
   await prisma.user.update({
     where: { id: req.user.id },
     data: {

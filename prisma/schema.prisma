@@ -63,6 +63,11 @@ model GameSession {
   gameId            Int
   game              Game                @relation(fields: [gameId], references: [id])
   Status            Status              @default(WAITING)
+  winner            String?
+  GameUrl           String?
+  ProcessID         Int?
+  CreatedAt         DateTime            @default(now())
+  StartedAt         DateTime?
   gameSessionPlayer gameSessionPlayer[]
 }
 
@@ -72,6 +77,8 @@ model gameSessionPlayer {
   gameSession GameSession @relation(fields: [sessionId], references: [id])
   playerId    Int         @default(0)
   player      User        @relation(fields: [playerId], references: [id])
+
+  @@unique([sessionId, playerId])
 }
 
 // init prisma model ----user me roles naam ka table add karna hai  aur data type enum ka naam role and  user/admin
