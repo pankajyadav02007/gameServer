@@ -29,6 +29,7 @@ const requestGame = async (req, res, next) => {
       Status: "WAITING",
     },
   });
+
   if (!gameSession) {
     gameSession = await prisma.gameSession.create({
       data: {
@@ -42,7 +43,7 @@ const requestGame = async (req, res, next) => {
           playerId: req.user.id,
         },
       });
-      res.json({ msg: " njsdjsd successfull", gameID: req.body.gameID });
+      res.json({ msg: "successful", gameID: req.body.gameID });
     } catch (err) {
       if (err.code === DB_ERR_CODES.UNIQUE_ERR) {
         throw new ServerError(

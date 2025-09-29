@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snake</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.js"></script>
+  </head>
+
+  <body>
+    <div style="display: flex; justify-content: center; height: 80px">
+      <h1 id="turn">your turn</h1>
+    </div>
+    <div style="display: flex; justify-content: center">
+      <canvas id="canvas"></canvas>
+      <h1
+        id="dice"
+        style="display: flex; align-items: center; padding: 20px"
+      ></h1>
+    </div>
+    <div style="display: flex; justify-content: center; margin-top: 10px">
+      <button id="play" style="padding: 10px 12px">Play</button>
+    </div>
+  </body>
+  <script src="./index.js"></script>
+</html>
