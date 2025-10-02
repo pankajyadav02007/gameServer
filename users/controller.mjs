@@ -3,12 +3,11 @@ import bcrypt from "bcrypt";
 import { prisma, Prisma, DB_ERR_CODES } from "../prisma/db.mjs";
 import { errorPritify, UserSignupModel, UserLoginModel } from "./validator.mjs";
 import emailQueue from "../queue/email.queue.mjs";
-import { asyncJwtSign } from "../asyncjwt.mjs";
+import { asyncJwtSign } from "../async.jwt.mjs";
 import { generateSecureRandomString } from "../utils.mjs";
 import dayjs from "dayjs";
 import { uploadImage } from "../storage/storage.mjs";
 
-// signUp implementation
 const signup = async (req, res, next) => {
   // validate input data
   const result = await UserSignupModel.safeParseAsync(req.body);
@@ -71,7 +70,6 @@ const signup = async (req, res, next) => {
   res.json({ msg: "signup is successful" });
 };
 
-// Login implementation
 const login = async (req, res, next) => {
   const result = await UserLoginModel.safeParseAsync(req.body);
   if (!result.success) {
@@ -102,10 +100,16 @@ const login = async (req, res, next) => {
     { expiresIn: process.env.TOKEN_EXPIRY_TIME }
   );
 
-  res.json({ msg: "login successful", token });
+  res.json({
+    msg: "login successful",
+    token,
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    profilePhoto: user.profilePhoto,
+  });
 };
 
-// ForgotPassword implementation
 const forgotPassword = async (req, res, next) => {
   // 2. generate a 32 keyword random string
   const randomStr = generateSecureRandomString(32);
@@ -143,7 +147,6 @@ const forgotPassword = async (req, res, next) => {
   res.json({ msg: "Email sent" });
 };
 
-// ResetPassword implementation
 const resetPassword = async (req, res, next) => {
   // 1. Extract token from req.body
   if (!req.body || !req.body.token) {
@@ -200,27 +203,28 @@ const getMe = async (req, res, next) => {
   res.json({ msg: "This is me", me: req.user });
 };
 
-// updatePofileImage in cloudinary implementation
 const updateProfileImage = async (req, res, next) => {
-  console.log(req.file);
-  // upload to cloud storage
-  const result = await uploadImage(req.file, "profiles", true);
-  console.log(result);
-  await prisma.user.update({
-    where: { id: req.user.id },
-    data: {
-      profilePhoto: result.secure_url,
+  const user = await prisma.user.findUnique({
+    where: {
+      id: req.user.id,
     },
   });
+  let result;
   if (!user.profilePhoto) {
+    // Delete image from cloudnary
     const fileName = `${generateSecureRandomString(32)}`;
+    // upload to cloud storage
     result = await uploadImage(req.file.buffer, fileName, "profiles", true);
+    // update file url in DB
   } else {
-    const splittedUrl = user.profilePhoto.splite("/");
+    // split by "/"
+    const splittedUrl = user.profilePhoto.split("/");
+    // pick last part of URL which is file name with extenstion
     const fileNameWithExt = splittedUrl[splittedUrl.length - 1];
-    const fileName = fileNameWithExt.splite(".")[0];
+    const fileName = fileNameWithExt.split(".")[0];
     result = await uploadImage(req.file.buffer, fileName, "profiles", true);
   }
+
   await prisma.user.update({
     where: { id: req.user.id },
     data: {

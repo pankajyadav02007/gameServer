@@ -66,15 +66,6 @@ const singleImageUploadMiddleware = (fieldName = "image") => {
         return next(new ServerError(400, "Please select a file to upload"));
       }
 
-      // // Add file info to request object for further processing
-      // req.uploadedFile = {
-      //   filename: req.file.filename,
-      //   originalName: req.file.originalname,
-      //   mimetype: req.file.mimetype,
-      //   size: req.file.size,
-      //   path: req.file.path
-      // };
-
       next();
     });
   };
