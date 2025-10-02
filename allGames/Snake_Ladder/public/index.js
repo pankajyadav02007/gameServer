@@ -1,59 +1,83 @@
-const maxNumberOfPawns = 12
+const maxNumberOfPawns = 12;
 
-const turnEle = document.getElementById("turn")
-turnEle.innerHTML = ' '
-const diceValueEle = document.getElementById("dice")
-diceValueEle.innerHTML = ''
+const turnEle = document.getElementById("turn");
+turnEle.innerHTML = " ";
+const diceValueEle = document.getElementById("dice");
+diceValueEle.innerHTML = "";
+const playBtnEle = document.getElementById("play");
+playBtnEle.style.backgroundColor = "#fcc";
+playBtnEle.style.color = "#000";
 
-const userName = prompt("enter your name")
-const pawnValue = prompt("enter number 0: blue, 1:yellow, 2:red, 3: green") || 0
+const userName = prompt("enter your name");
+const pawnValue =
+  prompt("enter number 0: blue, 1:yellow, 2:red, 3: green") || 0;
 
-const totalPawnImageEleList = []
+const totalPawnImageEleList = [];
 for (let i = 0; i < maxNumberOfPawns; i++) {
   const imageElement = new Image(`img${i}`);
   imageElement.src = `./pawns/${i}.png`;
-  totalPawnImageEleList.push(imageElement)
+  totalPawnImageEleList.push(imageElement);
 }
-const pawnEle = totalPawnImageEleList[pawnValue]
-let pawnImageEleList = totalPawnImageEleList.filter((e) => e !== pawnEle)
+const pawnEle = totalPawnImageEleList[pawnValue];
+let pawnImageEleList = totalPawnImageEleList.filter((e) => e !== pawnEle);
 
-const cClients = {}
+const cClients = {};
+const lastClientsPos = {};
 
 const assignColor = (clients) => {
-  console.log(clients)
+  console.log(clients);
   clients.forEach((e) => {
     if (pawnImageEleList.length === 0) {
-      console.log("all pawn image has selected")
-      return
+      console.log("all pawn image has selected");
+      return;
     }
     if (!cClients[e.socketId]) {
-      const selectedPawnImg = pawnImageEleList[Math.floor(Math.random() * pawnImageEleList.length)]
-      cClients[e.socketId] = selectedPawnImg
-      pawnImageEleList = pawnImageEleList.filter((e) => e !== selectedPawnImg)
+      const selectedPawnImg =
+        pawnImageEleList[Math.floor(Math.random() * pawnImageEleList.length)];
+      cClients[e.socketId] = selectedPawnImg;
+      pawnImageEleList = pawnImageEleList.filter((e) => e !== selectedPawnImg);
     }
-  })
-}
+  });
+};
 
-const socket = io('ws://192.168.1.137:5000')
+const socket = io();
 
-socket.on('info', (msg) => {
-  console.log(msg)
-  console.log(`Name: ${userName}, ID: ${socket.id} `)
-})
-socket.on('game', ({ diceValue, clients, turn }) => {
+socket.on("info", (msg) => {
+  console.log(msg);
+  console.log(`Name: ${userName}, ID: ${socket.id} `);
+});
+socket.on("game", async ({ diceValue, clients, turn }) => {
+  playBtnEle.disabled = false;
   // console.log(clients, turn, socket.id)
-  assignColor(clients)
-  if (turn === socket.id) {
-    turnEle.innerHTML = 'Your Turn'
-  } else {
-    const c = clients.filter((e) => e.socketId == turn)
-    turnEle.innerHTML = `Turn: ${c[0].name} `
-  }
-  diceValueEle.innerHTML = diceValue ? diceValue : ''
-  draw(clients)
-})
+  assignColor(clients);
+  // record postion of any new player
+  clients.forEach((e) => {
+    if (!lastClientsPos[e.socketId]) {
+      lastClientsPos[e.socketId] = e.position;
+    }
+  });
 
-socket.emit('info', userName)
+  if (turn === socket.id) {
+    turnEle.innerHTML = "Your Turn";
+  } else {
+    const c = clients.filter((e) => e.socketId == turn);
+    turnEle.innerHTML = `Turn: ${c[0].name} `;
+  }
+  diceValueEle.innerHTML = diceValue ? diceValue : "";
+  await drawAnimation(clients);
+});
+
+socket.on("game_over", (winnerList) => {
+  console.log(winnerList);
+  playBtnEle.disabled = true;
+  turnEle.innerHTML = "Winner is: ";
+
+  winnerList.forEach((e, i) => {
+    turnEle.innerHTML += ` ${i + 1}. ${e.name} `;
+  });
+});
+
+socket.emit("info", userName);
 
 const path = {
   1: { x: 0, y: 9 },
@@ -156,39 +180,25 @@ const path = {
   98: { x: 2, y: 0 },
   99: { x: 1, y: 0 },
   100: { x: 0, y: 0 },
-}
+};
 
-const canvasSize = 600
-const blockSize = canvasSize / 10
+const canvasSize = 600;
+const blockSize = canvasSize / 10;
 
 const webpImage = new Image();
-webpImage.src = '../map.png'; // Replace with your WebP image path
-const canvasEle = document.getElementById("canvas")
-canvasEle.height = canvasSize
-canvasEle.width = canvasSize
-const ctx = canvasEle.getContext("2d")
+webpImage.src = "../map.png"; // Replace with your WebP image path
+const canvasEle = document.getElementById("canvas");
+canvasEle.height = canvasSize;
+canvasEle.width = canvasSize;
+const ctx = canvasEle.getContext("2d");
 
 webpImage.onload = () => {
   ctx.drawImage(webpImage, 0, 0, canvasSize, canvasSize); // Example with custom position and size
 };
 
-const playBtnEle = document.getElementById("play")
-// playBtnEle.disabled = true
-playBtnEle.style.backgroundColor = "#fcc"
-playBtnEle.style.color = "#000"
-playBtnEle.addEventListener('click', () => {
-  socket.emit("play", "")
-})
-
-const drawCircle = (x, y, r, fillColor) => {
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, 2 * Math.PI);
-  ctx.fillStyle = fillColor;
-  ctx.fill();
-  ctx.lineWidth = 4;
-  ctx.strokeStyle = "white";
-  ctx.stroke();
-}
+playBtnEle.addEventListener("click", () => {
+  socket.emit("play", "");
+});
 
 const drawLine = (x1, y1, x2, y2) => {
   ctx.beginPath();
@@ -196,30 +206,102 @@ const drawLine = (x1, y1, x2, y2) => {
   ctx.lineTo(x2, y2);
   ctx.lineWidth = 1;
   ctx.stroke();
-}
-
-const drawPawn = (img, pathNum) => {
-  ctx.drawImage(img, blockSize / 6 + blockSize * path[pathNum].x, blockSize / 6 + blockSize * path[pathNum].y, blockSize - blockSize / 3, blockSize - blockSize / 3);
-}
+};
 
 // y axis line draw
 for (let i = 1; i < 10; i++) {
-  drawLine(blockSize * i, 0, blockSize * i, canvasSize)
+  drawLine(blockSize * i, 0, blockSize * i, canvasSize);
 }
 for (let i = 1; i < 10; i++) {
-  drawLine(0, blockSize * i, canvasSize, blockSize * i)
+  drawLine(0, blockSize * i, canvasSize, blockSize * i);
 }
 
-const draw = (clients) => {
+const drawAnimation = (clients) => {
+  return new Promise(async (resolve, reject) => {
+    let isAllPositionUpdated = clients.length;
+    // draw pawn
+    clients.forEach((e) => {
+      if (e.position != lastClientsPos[e.socketId]) {
+        let oldX = path[lastClientsPos[e.socketId]].x;
+        let oldY = path[lastClientsPos[e.socketId]].y;
+        const intervals = setInterval(() => {
+          ctx.clearRect(0, 0, canvasSize, canvasSize);
+          ctx.drawImage(webpImage, 0, 0, canvasSize, canvasSize); // Example with custom position and size
+          const newX = path[e.position].x;
+          const newY = path[e.position].y;
 
-  // clear screen
-  ctx.clearRect(0, 0, canvasSize, canvasSize)
-  ctx.drawImage(webpImage, 0, 0, canvasSize, canvasSize); // Example with custom position and size
-  // draw pawn
-  clients.forEach((e) => {
-    drawPawn(cClients[e.socketId], e.position)
-    if (e.socketId === socket.id) {
-      drawPawn(pawnEle, e.position)
-    }
-  })
-}
+          if (oldX > newX) {
+            oldX = oldX - 0.1;
+          } else if (newX > oldX) {
+            oldX = oldX + 0.1;
+          }
+          if (oldY > newY) {
+            oldY = oldY - 0.1;
+          } else if (newY > oldY) {
+            oldY = oldY + 0.1;
+          }
+          if (Math.abs(oldX - newX) < 0.09 && Math.abs(oldY - newY) < 0.09) {
+            isAllPositionUpdated--;
+            clearInterval(intervals);
+            lastClientsPos[e.socketId] = e.position;
+          }
+          if (isAllPositionUpdated === 0) {
+            resolve();
+          }
+          ctx.drawImage(
+            cClients[e.socketId],
+            blockSize / 6 + blockSize * oldX,
+            blockSize / 6 + blockSize * oldY,
+            blockSize - blockSize / 3,
+            blockSize - blockSize / 3
+          );
+          if (e.socketId === socket.id) {
+            ctx.drawImage(
+              pawnEle,
+              blockSize / 6 + blockSize * oldX,
+              blockSize / 6 + blockSize * oldY,
+              blockSize - blockSize / 3,
+              blockSize - blockSize / 3
+            );
+          }
+          const tempClients = clients.filter((c) => e != c);
+          tempClients.forEach((g) => {
+            ctx.drawImage(
+              cClients[g.socketId],
+              blockSize / 6 + blockSize * path[g.position].x,
+              blockSize / 6 + blockSize * path[g.position].y,
+              blockSize - blockSize / 3,
+              blockSize - blockSize / 3
+            );
+            if (g.socketId === socket.id) {
+              ctx.drawImage(
+                pawnEle,
+                blockSize / 6 + blockSize * path[g.position].x,
+                blockSize / 6 + blockSize * path[g.position].y,
+                blockSize - blockSize / 3,
+                blockSize - blockSize / 3
+              );
+            }
+          });
+        }, 20);
+      } else {
+        ctx.drawImage(
+          cClients[e.socketId],
+          blockSize / 6 + blockSize * path[e.position].x,
+          blockSize / 6 + blockSize * path[e.position].y,
+          blockSize - blockSize / 3,
+          blockSize - blockSize / 3
+        );
+        if (e.socketId === socket.id) {
+          ctx.drawImage(
+            pawnEle,
+            blockSize / 6 + blockSize * path[e.position].x,
+            blockSize / 6 + blockSize * path[e.position].y,
+            blockSize - blockSize / 3,
+            blockSize - blockSize / 3
+          );
+        }
+      }
+    });
+  });
+};

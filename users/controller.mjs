@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import { prisma, Prisma, DB_ERR_CODES } from "../prisma/db.mjs";
 import { errorPritify, UserSignupModel, UserLoginModel } from "./validator.mjs";
 import emailQueue from "../queue/email.queue.mjs";
-import { asyncJwtSign } from "../async.jwt.mjs";
+import { asyncJwtSign } from "../asyncJwt.mjs";
 import { generateSecureRandomString } from "../utils.mjs";
 import dayjs from "dayjs";
 import { uploadImage } from "../storage/storage.mjs";
