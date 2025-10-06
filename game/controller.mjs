@@ -113,7 +113,6 @@ const requestGame = async (req, res, next) => {
 
 const startGame = async (game) => {
   const port = Math.ceil(Math.random() * 62000) + 3000; // random number from 3000-65000
-
   // start game
   const gameInstance = spawn(
     "node",
