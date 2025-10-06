@@ -31,14 +31,14 @@ const requestGame = async (req, res, next) => {
   }
   let gameSession = await prisma.gameSession.findFirst({
     where: {
-      gameID: req.body.gameID,
-      status: "WAITING",
+      gameId: req.body.gameID,
+      Status: "WAITING",
     },
   });
   if (!gameSession) {
     gameSession = await prisma.gameSession.create({
       data: {
-        gameID: req.body.gameID,
+        gameId: req.body.gameID,
       },
     });
   }
@@ -46,8 +46,8 @@ const requestGame = async (req, res, next) => {
   try {
     gameSessionPlayer = await prisma.gameSessionPlayer.create({
       data: {
-        sessionID: gameSession.id,
-        playerID: req.user.id,
+        sessionId: gameSession.id,
+        playerId: req.user.id,
       },
     });
   } catch (err) {
@@ -68,17 +68,17 @@ const requestGame = async (req, res, next) => {
   // find total number of players in this game session
   const data = await prisma.gameSessionPlayer.aggregate({
     where: {
-      sessionID: gameSession.id,
+      sessionId: gameSession.id,
     },
     _count: {
-      playerID: true,
+      playerId: true,
     },
   });
 
-  if (game.maxPlayer > data._count.playerID) {
+  if (game.maxPlayer > data._count.playerId) {
     return res.json({
       msg: "successful, Wait for other players to join",
-      gameID: req.body.gameID,
+      gameId: req.body.gameId,
       gameSession,
       gameSessionPlayer,
       data,
@@ -87,7 +87,7 @@ const requestGame = async (req, res, next) => {
 
   const { pid, port } = await startGame(game);
   const gameURL = `${req.protocol}://${req.get("host")}:${port}`;
-
+  console.log(gameURL);
   await prisma.gameSession.updateMany({
     where: {
       id: gameSession.id,
@@ -95,14 +95,14 @@ const requestGame = async (req, res, next) => {
     data: {
       GameUrl: gameURL,
       ProcessID: pid,
-      status: "PLAYING",
+      Status: "PLAYING",
       StartedAt: new Date(),
     },
   });
 
   res.json({
     msg: "successful",
-    gameID: req.body.gameID,
+    gameId: req.body.gameId,
     gameSession,
     gameSessionPlayer,
     data,
@@ -120,7 +120,7 @@ const startGame = async (game) => {
     [path.resolve(__dirname, `../allGames/${game.name}/index.mjs`), port],
     {
       detached: true,
-      stdio: "ignore",
+      stdio: "inherit",
     }
   );
   gameInstance.unref();
@@ -129,19 +129,19 @@ const startGame = async (game) => {
 };
 
 const getMyGameSession = async (req, res, next) => {
-  const gameSessionID = req.params.sessionID * 1;
-  if (!gameSessionID) {
+  const gameSessionId = req.params.sessionId * 1;
+  if (!gameSessionId) {
     throw new ServerError(400, "must supply game session ID");
   }
 
   const sessionPlayers = await prisma.gameSessionPlayer.findMany({
     where: {
-      sessionID: gameSessionID,
+      sessionID: gameSessionId,
     },
     select: {
       id: true,
-      sessionID: true,
-      playerID: true,
+      sessionId: true,
+      playerId: true,
       player: {
         select: {
           name: true,
@@ -154,7 +154,7 @@ const getMyGameSession = async (req, res, next) => {
   let isMySession = false;
 
   sessionPlayers.forEach((sp) => {
-    if (sp.playerID == req.user.id) {
+    if (sp.playerId == req.user.id) {
       isMySession = true;
     }
   });
@@ -165,7 +165,7 @@ const getMyGameSession = async (req, res, next) => {
 
   const gameSession = await prisma.gameSession.findUnique({
     where: {
-      id: gameSessionID,
+      id: gameSessionId,
     },
   });
 
