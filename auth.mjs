@@ -1,5 +1,4 @@
-import { ca } from "zod/locales";
-import { asyncJwtVerify } from "./asyncjwt.mjs";
+import { asyncJwtVerify } from "./asyncJwt.mjs";
 import { ServerError } from "./error.mjs";
 
 const authentication = async (req, res, next) => {
@@ -26,4 +25,14 @@ const authentication = async (req, res, next) => {
   next();
 };
 
-export { authentication };
+const authorization = (...roles) => {
+  console.log(roles);
+  return async (req, res, next) => {
+    console.log("check authority here");
+    if (roles.findIndex((e) => e === req.user.role) < 0) {
+      throw new ServerError(401, "you are not authorized for this request");
+    }
+    next();
+  };
+};
+export { authentication, authorization };

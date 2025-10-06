@@ -8,7 +8,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
+enum Roles {
   ADMIN
   USER
 }
@@ -22,7 +22,7 @@ model User {
   resetToken        String?             @unique
   tokenExpiry       DateTime?
   profilePhoto      String?
-  role              String              @default("user")
+  Role              Roles               @default(USER)
   createdAt         DateTime            @default(now())
   playerGameProfile playerGameProfile[]
   gameSessionPlayer gameSessionPlayer[]

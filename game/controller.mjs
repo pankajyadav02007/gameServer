@@ -136,7 +136,7 @@ const getMyGameSession = async (req, res, next) => {
 
   const sessionPlayers = await prisma.gameSessionPlayer.findMany({
     where: {
-      sessionID: gameSessionId,
+      sessionId: gameSessionId,
     },
     select: {
       id: true,
