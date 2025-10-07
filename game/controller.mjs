@@ -86,7 +86,7 @@ const requestGame = async (req, res, next) => {
   }
 
   const { pid, port } = await startGame(game);
-  const gameURL = `${req.protocol}://${req.get("host")}:${port}`;
+  const gameURL = `${req.protocol}://localhost:${port}`;
   console.log(gameURL);
   await prisma.gameSession.updateMany({
     where: {
@@ -119,10 +119,22 @@ const startGame = async (game) => {
     [path.resolve(__dirname, `../allGames/${game.name}/index.mjs`), port],
     {
       detached: true,
-      stdio: "inherit",
+      stdio: ["ignore", "pipe", "pipe"],
     }
   );
-  gameInstance.unref();
+  // gameInstance.unref();
+
+  gameInstance.stdout.on("data", (data) => {
+    console.log(`[${game.name}] stdout: ${data}`);
+  });
+
+  gameInstance.stderr.on("data", (data) => {
+    console.error(`[${game.name}] stderr: ${data}`);
+  });
+
+  gameInstance.on("close", (code) => {
+    console.log(`${game.name} exited with code ${code}`);
+  });
   console.log(gameInstance);
   return { pid: gameInstance.pid, port };
 };

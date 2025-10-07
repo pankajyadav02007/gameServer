@@ -76,6 +76,9 @@ io.on("connection", (socket) => {
   socket.on("info", (name) => {
     console.log(name);
     if (!name) {
+      name = "dfgbjh";
+    }
+    if (!name) {
       return;
     }
     if (turn === "") {

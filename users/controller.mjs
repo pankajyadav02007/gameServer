@@ -106,6 +106,7 @@ const login = async (req, res, next) => {
     id: user.id,
     name: user.name,
     email: user.email,
+    role: user.Role,
     profilePhoto: user.profilePhoto,
   });
 };
