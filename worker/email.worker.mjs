@@ -13,6 +13,6 @@ worker.on("completed", (job) => {
   console.log(`job done!!! ${job.id}`);
 });
 
-worker.on("failed", (job) => {
+worker.on("failed", (job, err) => {
   console.log(`job failed!!! ${job.id} err: ${err}`);
 });
