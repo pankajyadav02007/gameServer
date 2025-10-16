@@ -3,10 +3,15 @@ import { createServer } from "node:http";
 import { Server } from "socket.io";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-
+import { asyncJwtVerify } from "./async.jwt.mjs";
 // console.log(process.argv)
 
 const PORT = process.argv[2] || 80;
+const TOKEN_SECRET = process.argv[3];
+
+if (!TOKEN_SECRET) {
+  throw new Error("Missing required environment variable: TOKEN_SECRET");
+}
 
 // Define __dirname for use with ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -73,21 +78,49 @@ const io = new Server(httpServer, {
 
 io.on("connection", (socket) => {
   console.log("a user connected");
-  socket.on("info", (name) => {
-    console.log(name);
-    if (!name) {
-      name = "dfgbjh";
-    }
-    if (!name) {
+  socket.on("info", async (token) => {
+    console.log(token, TOKEN_SECRET);
+    if (!token) {
       return;
     }
     if (turn === "") {
       turn = socket.id;
     }
-    socket.emit("info", "hello from server");
-    clients.push({ name, socketId: socket.id, position: 1 });
+
+    let payload;
+    try {
+      payload = await asyncJwtVerify(token, TOKEN_SECRET);
+      console.log(payload);
+      socket.emit("info", payload);
+    } catch (e) {
+      socket.emit("info", e.message);
+    }
+
+    let isFound = false;
+    clients.forEach((e, i) => {
+      if (e.id === payload.id) {
+        clients[i].socketId = socket.id;
+        isFound = true;
+      }
+    });
+
+    if (!isFound) {
+      clients.push({
+        name: payload.name,
+        id: payload.id,
+        profilePhoto: payload.profilePhoto,
+        socketId: socket.id,
+        position: 1,
+      });
+    }
+
     io.emit("game", { clients, turn });
     console.log(clients);
+
+    // socket.emit("info", "hello from server");
+    // clients.push({ name, socketId: socket.id, position: 1 });
+    // io.emit("game", { clients, turn });
+    // console.log(clients);
   });
   socket.on("play", playGame(socket));
   // socket.on('game', () => {
@@ -106,10 +139,11 @@ io.on("connection", (socket) => {
   });
 });
 
-app.use(express.static(path.join(__dirname, "public")));
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
+
+app.use(express.static(path.join(__dirname, "public")));
 
 httpServer.listen(PORT, (e) => {
   if (e) {

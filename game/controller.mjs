@@ -3,6 +3,8 @@ import { ServerError } from "../error.mjs";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { generateSecureRandomString } from "../utils.mjs";
+import { asyncJwtSign } from "../asyncJwt.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,6 +31,8 @@ const requestGame = async (req, res, next) => {
   if (!req.body.gameID) {
     throw new ServerError(400, "game id must be supplied");
   }
+
+  const tokenSecret = generateSecureRandomString(32);
   let gameSession = await prisma.gameSession.findFirst({
     where: {
       gameId: req.body.gameID,
@@ -39,6 +43,7 @@ const requestGame = async (req, res, next) => {
     gameSession = await prisma.gameSession.create({
       data: {
         gameId: req.body.gameID,
+        TokenSecret: tokenSecret,
       },
     });
   }
@@ -85,10 +90,12 @@ const requestGame = async (req, res, next) => {
     });
   }
 
-  const { pid, port } = await startGame(game);
-  const gameURL = `${req.protocol}://localhost:${port}`;
-  console.log(gameURL);
-  await prisma.gameSession.updateMany({
+  const { pid, port } = await startGame(game, tokenSecret);
+  const token = await asyncJwtSign(req.user, tokenSecret);
+  const gameURL = `${req.protocol}://localhost:${port}?token=${token}`;
+  // console.log(gameURL);
+
+  gameSession = await prisma.gameSession.updateManyAndReturn({
     where: {
       id: gameSession.id,
     },
@@ -111,12 +118,16 @@ const requestGame = async (req, res, next) => {
   });
 };
 
-const startGame = async (game) => {
+const startGame = async (game, tokenSecret) => {
   const port = Math.ceil(Math.random() * 62000) + 3000; // random number from 3000-65000
   // start game
   const gameInstance = spawn(
     "node",
-    [path.resolve(__dirname, `../allGames/${game.name}/index.mjs`), port],
+    [
+      path.resolve(__dirname, `../allGames/${game.name}/index.mjs`),
+      port,
+      tokenSecret,
+    ],
     {
       detached: true,
       stdio: ["ignore", "pipe", "pipe"],
@@ -135,7 +146,7 @@ const startGame = async (game) => {
   gameInstance.on("close", (code) => {
     console.log(`${game.name} exited with code ${code}`);
   });
-  console.log(gameInstance);
+  // console.log(gameInstance);
   return { pid: gameInstance.pid, port };
 };
 
