@@ -9,7 +9,13 @@ import gameRouter from "./game/router.mjs";
 import sessionRouter from "./session/router.mjs";
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5173", // allow your frontend URL
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    credentials: true, // if using cookies or auth headers
+  })
+);
 
 app.use(express.json()); // without this middlware req.body will be undefined
 
