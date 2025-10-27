@@ -7,6 +7,7 @@ import { asyncJwtSign } from "../asyncJwt.mjs";
 import { generateSecureRandomString } from "../utils.mjs";
 import dayjs from "dayjs";
 import { uploadImage } from "../storage/storage.mjs";
+import { OAuth2Client } from "google-auth-library";
 
 const signup = async (req, res, next) => {
   // validate input data
@@ -112,6 +113,54 @@ const login = async (req, res, next) => {
   });
 };
 
+// google client
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URL
+);
+
+// google Login
+const googleLogin = async (req, res, next) => {
+  console.log(req.body);
+  try {
+    const response = await googleClient.getToken(req.body.code);
+    // console.log(response);
+
+    const userResponse = await fetch(
+      "https://www.googleapis.com/oauth2/v3/userinfo",
+      {
+        headers: { Authorization: `Bearer ${response.tokens.access_token}` },
+      }
+    );
+    if (!userResponse.ok) {
+      throw new Error(`Userinfo request failed: ${userResponse.statusText}`);
+    }
+    const userData = await userResponse.json();
+    console.log(userData);
+  } catch (error) {
+    console.log(error);
+  }
+
+  res.json({
+    msg: "Google login successful",
+  });
+};
+
+const googleUser = await prisma.user.upsert({
+  where: { email: user.email },
+  update: {},
+  create: {
+    email: user.email,
+    name: user.name,
+    image: user.picture,
+    accountVerified: true,
+  },
+});
+
+console.log(googleUser);
+
+// forgotPassword
 const forgotPassword = async (req, res, next) => {
   // 2. generate a 32 keyword random string
   const randomStr = generateSecureRandomString(32);
@@ -240,6 +289,7 @@ const updateProfileImage = async (req, res, next) => {
 export {
   signup,
   login,
+  googleLogin,
   forgotPassword,
   resetPassword,
   getMe,
